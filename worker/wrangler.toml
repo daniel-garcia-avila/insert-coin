@@ -1,0 +1,27 @@
+name = "monedas-api"
+main = "src/index.js"
+compatibility_date = "2025-09-01"
+
+[vars]
+# Id de tu proyecto Firebase (Configuración del proyecto > General)
+FIREBASE_PROJECT_ID = "tu-proyecto-firebase"
+# Dominios desde los que se puede usar el backend, separados por comas
+ALLOWED_ORIGINS = "https://tu-proyecto-firebase.web.app,https://tu-proyecto-firebase.firebaseapp.com,http://localhost:5173"
+# Opcional: limita el uso a estas cuentas (así nadie más gasta tus cuotas gratuitas)
+ALLOWED_EMAILS = ""
+# Modelos gratuitos de Gemini (alias que siempre apuntan a la última versión Flash)
+GEMINI_MODEL = "gemini-flash-latest"
+GEMINI_FALLBACK_MODEL = "gemini-flash-lite-latest"
+EBAY_MARKETPLACE = "EBAY_ES"
+
+# Caché opcional y gratuita para ahorrar cuota de Numista y eBay.
+# Créala con:  npx wrangler kv namespace create CACHE   y pega aquí el id.
+# [[kv_namespaces]]
+# binding = "CACHE"
+# id = "pega-aqui-el-id"
+
+# Claves secretas (NO se escriben aquí). Se guardan con:
+#   npx wrangler secret put GEMINI_API_KEY
+#   npx wrangler secret put NUMISTA_API_KEY
+#   npx wrangler secret put EBAY_CLIENT_ID
+#   npx wrangler secret put EBAY_CLIENT_SECRET

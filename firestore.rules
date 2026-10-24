@@ -1,0 +1,32 @@
+rules_version = '2';
+// Cada usuario solo puede ver y modificar su propia colección.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    function validCoin() {
+      let d = request.resource.data;
+      return d.title is string && d.title.size() <= 200
+        && (!('events' in d) || (d.events is list && d.events.size() <= 20))
+        && (!('tags' in d) || (d.tags is list && d.tags.size() <= 30))
+        && (!('quantity' in d) || (d.quantity is int && d.quantity >= 1 && d.quantity <= 100000));
+    }
+
+    match /users/{uid} {
+      allow read, write: if isOwner(uid);
+
+      match /coins/{coinId} {
+        allow read, delete: if isOwner(uid);
+        allow create, update: if isOwner(uid) && validCoin();
+
+        // Fotos a tamaño completo (anverso y reverso), en un documento aparte
+        match /media/{docId} {
+          allow read, write: if isOwner(uid);
+        }
+      }
+    }
+  }
+}

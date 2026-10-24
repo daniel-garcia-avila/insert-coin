@@ -1,0 +1,13 @@
+{
+  "name": "Monetario",
+  "short_name": "Monetario",
+  "description": "Fotografía, cataloga y valora tu colección de monedas.",
+  "lang": "es",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#EDEFF2",
+  "theme_color": "#22304F",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
