@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { store } from '../lib/store.js';
+import iconUrl from '../assets/icon.svg';
 
 const ERRORS = {
   'auth/invalid-credential': 'Email o contraseña incorrectos.',
@@ -38,7 +39,7 @@ export default function Login() {
   return (
     <div className="login">
       <div className="login-stage">
-        <img src="/icon.svg" alt="" width="88" height="88" />
+        <img src={iconUrl} alt="" width="88" height="88" />
         <h1>Monetario</h1>
         <p>Haz una foto a cada moneda y tendrás tu colección catalogada y valorada.</p>
       </div>

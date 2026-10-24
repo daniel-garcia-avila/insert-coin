@@ -157,7 +157,7 @@ export default function Inventory() {
               <option value="country">Por país</option>
             </select>
           </label>
-          <button type="button" className="link" onClick={() => { setF(EMPTY); sessionStorage.removeItem('filters'); }}>
+          <button type="button" className="link" onClick={() => { setF(EMPTY); try { sessionStorage.removeItem('filters'); } catch { /* sin almacenamiento */ } }}>
             Quitar filtros
           </button>
         </div>
