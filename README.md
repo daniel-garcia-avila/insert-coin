@@ -79,6 +79,16 @@ firebase deploy --only hosting,firestore
 
 Abre `https://TU-PROYECTO.web.app` en el móvil y usa **Añadir a pantalla de inicio** para tenerla como una app.
 
+### Alternativa: publicar en GitHub Pages
+
+El repo trae una publicación automática (`.github/workflows/pages.yml`) que compila la app y la sube a `https://TU-USUARIO.github.io/insert-coin/` cada vez que hay cambios en `main`.
+
+1. En GitHub: **Settings → Pages → Source:** elige **GitHub Actions** (no «Deploy from a branch», que solo muestra este README).
+2. Sin más configuración se publica en **modo demostración**.
+3. Para la versión real, en **Settings → Secrets and variables → Actions → Variables** crea `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_PROJECT_ID`, `VITE_FIREBASE_APP_ID` y `VITE_API_URL` con los mismos valores del `.env`. Después, en **Actions**, vuelve a ejecutar «Publicar app en GitHub Pages».
+4. En Firebase, **Authentication → Configuración → Dominios autorizados**, añade `TU-USUARIO.github.io`.
+5. En `worker/wrangler.toml`, añade `https://TU-USUARIO.github.io` a `ALLOWED_ORIGINS` y vuelve a desplegar el backend.
+
 ## Cómo calcula el precio
 
 Para cada moneda junta hasta cuatro fuentes según su estado de conservación:

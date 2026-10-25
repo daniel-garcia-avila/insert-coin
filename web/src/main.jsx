@@ -9,12 +9,12 @@ const Router = import.meta.env.VITE_ROUTER === 'memory' ? MemoryRouter : Browser
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <Router>
+    <Router basename={import.meta.env.BASE_URL.replace(/\/$/, '') || undefined}>
       <App />
     </Router>
   </React.StrictMode>,
 );
 
 if ('serviceWorker' in navigator && import.meta.env.PROD && import.meta.env.VITE_ROUTER !== 'memory') {
-  window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
+  window.addEventListener('load', () => navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch(() => {}));
 }
