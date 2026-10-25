@@ -1,4 +1,4 @@
-name = "monedas-api"
+name = "insert-coin-api"
 main = "src/index.js"
 compatibility_date = "2025-09-01"
 

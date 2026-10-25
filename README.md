@@ -1,4 +1,4 @@
-# Monetario: tu colección de monedas, fotografiada y valorada
+# INSERT COIN: tu colección de monedas, fotografiada y valorada
 
 Haces una foto al anverso y al reverso de una moneda con el móvil. La IA la identifica sola (país, año, época, reinado, valor facial, metal, eventos y estado de conservación) y la app la guarda en tu inventario con un precio contrastado entre varias fuentes.
 
@@ -63,8 +63,8 @@ npx wrangler secret put EBAY_CLIENT_SECRET
 npx wrangler deploy
 ```
 
-4. Copia la dirección que muestra al final (`https://monedas-api.TU-SUBDOMINIO.workers.dev`) y pégala en `VITE_API_URL` dentro de `web/.env`.
-5. Comprueba que va: abre `https://monedas-api.TU-SUBDOMINIO.workers.dev/health` en el navegador. Debe indicar `true` en cada clave configurada.
+4. Copia la dirección que muestra al final (`https://insert-coin-api.TU-SUBDOMINIO.workers.dev`) y pégala en `VITE_API_URL` dentro de `web/.env`.
+5. Comprueba que va: abre `https://insert-coin-api.TU-SUBDOMINIO.workers.dev/health` en el navegador. Debe indicar `true` en cada clave configurada.
 
 Opcional, para gastar menos cuota de Numista y eBay: `npx wrangler kv namespace create CACHE`, pega el id en `wrangler.toml` (descomenta el bloque `kv_namespaces`) y vuelve a ejecutar `npx wrangler deploy`.
 

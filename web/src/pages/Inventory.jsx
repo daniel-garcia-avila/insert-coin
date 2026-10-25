@@ -77,7 +77,7 @@ export default function Inventory() {
   return (
     <>
       <header className="inv-head">
-        <h1>Mi monetario</h1>
+        <h1>Mi colección</h1>
         <p className="inv-total">
           <span className="inv-value">{formatEur(total)}</span>
           <span className="muted">

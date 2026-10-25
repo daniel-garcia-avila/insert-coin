@@ -40,7 +40,7 @@ export default function Login() {
     <div className="login">
       <div className="login-stage">
         <img src={iconUrl} alt="" width="88" height="88" />
-        <h1>Monetario</h1>
+        <h1>INSERT COIN</h1>
         <p>Haz una foto a cada moneda y tendrás tu colección catalogada y valorada.</p>
       </div>
       <form className="login-form" onSubmit={submit}>

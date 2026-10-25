@@ -1,5 +1,5 @@
 {
-  "name": "monedas-api",
+  "name": "insert-coin-api",
   "private": true,
   "type": "module",
   "scripts": {

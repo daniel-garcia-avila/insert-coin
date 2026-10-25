@@ -1,6 +1,6 @@
 // Service worker mínimo: guarda la app para abrirla sin conexión.
 // Los datos sin conexión los gestiona Firestore con su propia caché.
-const CACHE = 'monetario-v1';
+const CACHE = 'insert-coin-v1';
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(['/', '/index.html', '/icon.svg'])));

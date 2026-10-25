@@ -47,7 +47,7 @@ export const store = {
     return subscribe(() => cb(state.user));
   },
   async signInGoogle() {
-    state.user = { uid: 'demo', email: 'demo@monetario.app', name: 'Demo' };
+    state.user = { uid: 'demo', email: 'demo@insertcoin.app', name: 'Demo' };
     save();
   },
   async signInEmail(email) {
