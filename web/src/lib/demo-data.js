@@ -2,7 +2,7 @@
 
 function coinSvg(face, rim, text, sub) {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240">
-<rect width="240" height="240" fill="#1b2540"/>
+<rect width="240" height="240" fill="#10201a"/>
 <circle cx="120" cy="120" r="104" fill="${rim}"/>
 <circle cx="120" cy="120" r="94" fill="${face}"/>
 <circle cx="120" cy="120" r="84" fill="none" stroke="${rim}" stroke-width="2" stroke-dasharray="2 5"/>
