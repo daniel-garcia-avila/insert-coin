@@ -66,10 +66,27 @@ export interface CoinRow {
   ai_raw: unknown;
 }
 
+/** Resumen de la última identificación por IA que se muestra al usuario. */
+export interface AiSummary {
+  model: string;
+  identified_at: string;
+  is_coin: boolean;
+  grade_reason: string | null;
+  notes_for_user: string | null;
+  alternatives: string[];
+}
+
+/** Lo que se guarda en coins.ai_raw tras identificar. */
+export interface AiRaw extends AiSummary {
+  numista_query: string | null;
+  response: unknown;
+}
+
 /** Moneda que se envía al navegador: sin datos internos y con URLs firmadas de las fotos. */
 export type Coin = Omit<CoinRow, "ai_raw" | "obverse_path" | "reverse_path"> & {
   obverse_url: string | null;
   reverse_url: string | null;
+  ai: AiSummary | null;
 };
 
 export interface ApiError {

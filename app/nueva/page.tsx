@@ -30,7 +30,7 @@ export default function NewCoinPage() {
       form.append("obverse", obverse);
       form.append("reverse", reverse);
       const { coin } = await apiFetch<{ coin: Coin }>("/api/coins", { method: "POST", body: form });
-      router.push(`/moneda/${coin.id}`);
+      router.push(`/moneda/${coin.id}?identificar=1`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "No se pudo guardar la moneda.");
       setSaving(false);

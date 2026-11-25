@@ -14,3 +14,8 @@ export function formatValueRange(min: number | null, max: number | null): string
 export function formatDate(iso: string): string {
   return dateFmt.format(new Date(iso));
 }
+
+/** La fuente pixelada no tiene mayúsculas acentuadas: quitamos tildes en los títulos arcade. */
+export function arcadeText(text: string): string {
+  return text.normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase();
+}

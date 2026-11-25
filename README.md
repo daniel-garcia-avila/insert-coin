@@ -2,9 +2,9 @@
 
 Identifica, tasa y gestiona tu colección de monedas desde el móvil o el PC.
 
-> **Estado actual: Fases 0 y 1 completadas.**
-> Ya puedes entrar con contraseña, hacer las fotos del anverso y el reverso, guardarlas en tu inventario, verlas y borrarlas.
-> La identificación con IA (Fase 2) y la tasación (Fase 3) llegan en las siguientes entregas.
+> **Estado actual: Fases 0, 1 y 2 completadas.**
+> Entras con contraseña, haces las fotos del anverso y el reverso, la IA identifica la moneda y sugiere su estado de conservación,
+> revisas la ficha y la confirmas en tu inventario. La tasación (Fase 3) llega en la siguiente entrega.
 
 ---
 
@@ -52,6 +52,16 @@ Edita `.env.local`:
 | `SESSION_SECRET` | Un texto aleatorio de 32+ caracteres. Genéralo con: `node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"` |
 | `SUPABASE_URL` | La Project URL de Supabase |
 | `SUPABASE_SECRET_KEY` | La Secret key (o service_role) de Supabase |
+| `GEMINI_API_KEY` | Clave gratuita de Google AI Studio (ver abajo). Opcional: sin ella no hay identificación automática |
+| `GEMINI_MODEL` / `GEMINI_FALLBACK_MODEL` | Opcionales. Por defecto `gemini-3.8-flash` y, si se agota su cuota, `gemini-3.5-flash-lite` |
+
+### Clave de Gemini (gratis)
+
+1. Entra en [aistudio.google.com](https://aistudio.google.com) con tu cuenta de Google.
+2. Pulsa **Get API key → Create API key**. No pide tarjeta.
+3. Pégala en `GEMINI_API_KEY`.
+
+⚠️ En el plan gratuito, Google puede usar lo que envías (las fotos de tus monedas) para mejorar sus productos. Los límites diarios son bajos: si se agotan, la app te avisa y puedes reintentar más tarde o rellenar la ficha a mano.
 
 ## 4. Ejecutar
 
@@ -77,7 +87,7 @@ Arranca con `npm run dev -- -H 0.0.0.0` y abre `http://IP-DE-TU-PC:3000` en el m
    git push -u origin main
    ```
 2. En Vercel, pulsa **Add New → Project**, importa el repositorio y deja la configuración por defecto (detecta Next.js).
-3. En **Environment Variables**, añade las mismas 4 variables de tu `.env.local`.
+3. En **Environment Variables**, añade las variables de tu `.env.local` (las 4 obligatorias y `GEMINI_API_KEY`).
 4. Pulsa **Deploy**. Tendrás una URL `https://insert-coin-xxx.vercel.app`.
 5. Cada `git push` a `main` vuelve a desplegar la app.
 
@@ -100,6 +110,20 @@ Arranca con `npm run dev -- -H 0.0.0.0` y abre `http://IP-DE-TU-PC:3000` en el m
 6. Prueba el botón ☀️/🌙 para cambiar entre modo oscuro y claro, y el de salir para cerrar la sesión.
 7. En Supabase → **Table Editor → coins** verás el registro, y en **Storage → coin-photos** las fotos comprimidas (normalmente entre 150 y 400 KB).
 
+## Cómo probar la Fase 2 (identificación)
+
+1. Añade una moneda real con buena luz. Al guardar, la ficha se abre y la IA empieza a analizarla sola (**ANALIZANDO MONEDA…**, entre 5 y 30 s).
+2. Verás el panel **Identificación IA** con:
+   - la confianza (alta, media o baja),
+   - los avisos (por ejemplo, «la fecha no se lee bien»),
+   - el estado sugerido y por qué,
+   - otras identificaciones posibles.
+3. Debajo está el formulario relleno. El estado sugerido aparece marcado con la etiqueta **IA**. Ajusta lo que haga falta.
+4. **Guardar borrador** guarda los datos sin confirmar la moneda. **Confirmar moneda** la pasa a tu colección.
+5. Una moneda confirmada muestra su ficha completa. Desde ahí puedes **Editar ficha** o pulsar **Volver a identificar**.
+6. Comprueba la validación: escribe letras en «Año» o un año futuro y verás el error junto al campo.
+7. Sin `GEMINI_API_KEY`, o con la cuota agotada, verás un aviso claro con las opciones **Reintentar** y **Rellenar a mano**.
+
 ---
 
 ## Estructura del proyecto
@@ -113,15 +137,18 @@ insert-coin/
 │  ├─ acceso/page.tsx          # Pantalla de contraseña
 │  ├─ api/auth/route.ts        # Login / logout
 │  ├─ api/coins/route.ts       # GET lista · POST nueva moneda (multipart)
-│  ├─ api/coins/[id]/route.ts  # GET una · DELETE
+│  ├─ api/coins/[id]/route.ts  # GET una · PATCH editar/confirmar · DELETE
+│  ├─ api/coins/[id]/identify/route.ts  # POST identificar con IA
 │  ├─ manifest.ts              # Manifiesto PWA
 │  └─ layout.tsx, globals.css  # Tema, fuentes y cabecera
-├─ components/                 # AppHeader, Logo, ThemeToggle, PhotoSlot, CoinCard, States…
+├─ components/                 # AppHeader, Logo, ThemeToggle, PhotoSlot, CoinCard, CoinForm, GradeSelector, AiPanel, States…
 ├─ lib/
 │  ├─ auth.ts                  # Cookie de sesión firmada (HMAC)
 │  ├─ env.ts                   # Validación de variables de entorno
 │  ├─ supabase.ts              # Cliente Supabase (solo servidor)
 │  ├─ coins.ts                 # Lógica de negocio del inventario
+│  ├─ gemini.ts                # Llamada a Gemini con respuesta JSON estructurada y modelo de reserva
+│  ├─ identify.ts              # Identificar una moneda y rellenar su ficha
 │  ├─ image.ts                 # Compresión de fotos en el navegador
 │  ├─ validation.ts            # Esquemas zod y validación de archivos
 │  └─ types.ts, format.ts, ui.ts, api-client.ts, api-response.ts
@@ -131,9 +158,13 @@ insert-coin/
 └─ public/                     # Iconos y service worker
 ```
 
+## Región
+
+`vercel.json` fija las funciones del servidor en París (`cdg1`), junto a la base de datos de Supabase (`eu-west-3`), para que la app responda más rápido.
+
 ## Seguridad
 
-- **Claves:** `SUPABASE_SECRET_KEY` y `SESSION_SECRET` solo existen en el servidor. Ninguna variable empieza por `NEXT_PUBLIC_`, así que ninguna llega al navegador.
+- **Claves:** `SUPABASE_SECRET_KEY`, `GEMINI_API_KEY` y `SESSION_SECRET` solo existen en el servidor. Ninguna variable empieza por `NEXT_PUBLIC_`, así que ninguna llega al navegador.
 - **`.env.local` nunca se sube a Git** (está en `.gitignore`). Si alguna vez se filtra una clave, regenérala en Supabase.
 - **Datos:** RLS activado sin políticas, así que solo el servidor puede leer y escribir. Las fotos están en un bucket privado y se muestran con URLs firmadas que caducan en 1 hora.
 - **Acceso:** contraseña única con cookie `httpOnly`, firmada y con caducidad de 30 días. Los intentos fallidos tienen un retardo para frenar ataques de fuerza bruta. Usa una contraseña larga.
@@ -157,7 +188,6 @@ insert-coin/
 
 ## Próximas fases
 
-- **Fase 2: identificación.** Gemini analiza el anverso y el reverso y propone el país, el valor facial, el año, la época, el material y el estado de conservación (BC, MBC, EBC…). Tú lo revisas en un formulario editable y confirmas.
 - **Fase 3: tasación.** Se cruza con Numista y se muestra un rango de precio según el estado, curiosidades y enlaces a todocoleccion, eBay y Numista.
 - **Fase 4: inventario avanzado.** Búsqueda, filtros, orden, agrupación por país, época o año, y valor total de la colección.
 - **Fase 5: cierre.** Despliegue final, README completo y mejoras para la v2.

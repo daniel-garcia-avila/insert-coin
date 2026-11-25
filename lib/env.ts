@@ -26,3 +26,12 @@ export function getServerEnv(): ServerEnv {
   cached = parsed.data;
   return cached;
 }
+
+/** Configuración de Gemini. Es opcional: si falta la clave, la app funciona pero sin identificación. */
+export function getGeminiConfig(): { apiKey: string; models: string[] } | null {
+  const apiKey = process.env.GEMINI_API_KEY?.trim();
+  if (!apiKey) return null;
+  const primary = process.env.GEMINI_MODEL?.trim() || "gemini-3.8-flash";
+  const fallback = process.env.GEMINI_FALLBACK_MODEL?.trim() || "gemini-3.5-flash-lite";
+  return { apiKey, models: primary === fallback ? [primary] : [primary, fallback] };
+}

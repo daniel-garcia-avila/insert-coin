@@ -66,7 +66,9 @@ create index if not exists coins_era_idx        on public.coins (era);
 
 -- updated_at automático
 create or replace function public.set_updated_at()
-returns trigger language plpgsql as $$
+returns trigger language plpgsql
+set search_path = ''
+as $$
 begin
   new.updated_at = now();
   return new;

@@ -2,7 +2,8 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import { getSupabaseAdmin, PHOTO_BUCKET } from "./supabase";
 import { EXTENSION_BY_TYPE } from "./validation";
-import type { Coin, CoinRow } from "./types";
+import type { AiRaw, AiSummary, Coin, CoinRow } from "./types";
+import type { CoinUpdate } from "./validation";
 
 const SIGNED_URL_TTL_SECONDS = 60 * 60; // 1 hora
 
@@ -26,14 +27,61 @@ async function attachSignedUrls(rows: CoinRow[]): Promise<Coin[]> {
   }
 
   return rows.map((row) => {
-    const { ai_raw: _aiRaw, obverse_path, reverse_path, ...rest } = row;
-    void _aiRaw;
+    const { ai_raw, obverse_path, reverse_path, ...rest } = row;
     return {
       ...rest,
       obverse_url: urlByPath.get(obverse_path) ?? null,
       reverse_url: urlByPath.get(reverse_path) ?? null,
+      ai: toAiSummary(ai_raw),
     };
   });
+}
+
+function toAiSummary(raw: unknown): AiSummary | null {
+  if (!raw || typeof raw !== "object" || !("identified_at" in raw)) return null;
+  const r = raw as AiRaw;
+  return {
+    model: r.model,
+    identified_at: r.identified_at,
+    is_coin: r.is_coin,
+    grade_reason: r.grade_reason ?? null,
+    notes_for_user: r.notes_for_user ?? null,
+    alternatives: Array.isArray(r.alternatives) ? r.alternatives : [],
+  };
+}
+
+/** Fila completa (con rutas de fotos y ai_raw). Solo para uso interno del servidor. */
+export async function getCoinRow(id: string): Promise<CoinRow | null> {
+  const { data, error } = await getSupabaseAdmin().from("coins").select("*").eq("id", id).maybeSingle();
+  if (error) {
+    console.error("[coins] Error leyendo fila:", error.message);
+    throw new AppError("No se pudo cargar la moneda.");
+  }
+  return (data as CoinRow | null) ?? null;
+}
+
+/** Actualiza campos de una moneda. Devuelve null si no existe. */
+export async function updateCoin(id: string, changes: CoinUpdate | Partial<CoinRow>): Promise<Coin | null> {
+  const { data, error } = await getSupabaseAdmin().from("coins").update(changes).eq("id", id).select("*").maybeSingle();
+  if (error) {
+    console.error("[coins] Error actualizando:", error.message);
+    throw new AppError("No se pudieron guardar los cambios.");
+  }
+  if (!data) return null;
+  const [coin] = await attachSignedUrls([data as CoinRow]);
+  return coin;
+}
+
+/** Descarga una foto del almacén privado (para enviarla a la IA). */
+export async function downloadPhoto(path: string): Promise<{ base64: string; mimeType: string }> {
+  const { data, error } = await getSupabaseAdmin().storage.from(PHOTO_BUCKET).download(path);
+  if (error || !data) {
+    console.error("[coins] Error descargando foto:", error?.message);
+    throw new AppError("No se pudieron leer las fotos de la moneda.");
+  }
+  const buffer = Buffer.from(await data.arrayBuffer());
+  const mimeType = data.type || (path.endsWith(".png") ? "image/png" : path.endsWith(".jpg") ? "image/jpeg" : "image/webp");
+  return { base64: buffer.toString("base64"), mimeType };
 }
 
 export async function listCoins(): Promise<Coin[]> {
