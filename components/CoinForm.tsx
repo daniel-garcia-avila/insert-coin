@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { GradeSelector } from "./GradeSelector";
 import { InlineError } from "./States";
 import { apiFetch } from "@/lib/api-client";
@@ -142,14 +142,13 @@ export function CoinForm({ coin, onSaved, onCancel }: CoinFormProps) {
   );
   const area = (name: TextField, label: string, placeholder?: string) => (
     <Field label={label} error={errors[name]} className="sm:col-span-2">
-      <textarea
+      <AutoGrowTextarea
         id={`f-${name}`}
-        className={`${input} min-h-24 resize-y`}
         value={values[name]}
         placeholder={placeholder}
         disabled={disabled}
-        aria-invalid={Boolean(errors[name])}
-        onChange={(e) => set(name, e.target.value)}
+        invalid={Boolean(errors[name])}
+        onChange={(v) => set(name, v)}
       />
     </Field>
   );
@@ -200,8 +199,8 @@ export function CoinForm({ coin, onSaved, onCancel }: CoinFormProps) {
       </Section>
 
       <Section title="Descripción">
-        {area("description", "Descripción")}
-        {area("interesting_facts", "Curiosidades")}
+        <ReadOnlyText label="Descripción" text={values.description} />
+        <ReadOnlyText label="Curiosidades" text={values.interesting_facts} />
         {area("notes", "Mis notas", "Dónde la conseguí, precio de compra…")}
       </Section>
 
@@ -231,6 +230,61 @@ export function CoinForm({ coin, onSaved, onCancel }: CoinFormProps) {
         )}
       </div>
     </form>
+  );
+}
+
+/** Texto generado por la IA: solo lectura y siempre completo (sin scroll). */
+function ReadOnlyText({ label, text }: { label: string; text: string }) {
+  return (
+    <div className="space-y-1 sm:col-span-2">
+      <p className="text-xs font-medium text-muted">{label}</p>
+      {text ? (
+        <p className="whitespace-pre-line rounded-xl bg-surface-2/60 px-3 py-2.5 text-sm leading-relaxed">{text}</p>
+      ) : (
+        <p className="px-1 text-sm italic text-muted">Se completa al identificar la moneda con IA.</p>
+      )}
+    </div>
+  );
+}
+
+/** Textarea que crece con el contenido: nunca muestra barra de scroll. */
+function AutoGrowTextarea({
+  id,
+  value,
+  placeholder,
+  disabled,
+  invalid,
+  onChange,
+}: {
+  id: string;
+  value: string;
+  placeholder?: string;
+  disabled?: boolean;
+  invalid?: boolean;
+  onChange: (value: string) => void;
+}) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+
+  // Ajusta la altura al contenido cada vez que cambia el texto (también al cargar).
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight + 2}px`;
+  }, [value]);
+
+  return (
+    <textarea
+      ref={ref}
+      id={id}
+      rows={3}
+      className={`${input} resize-none overflow-hidden leading-relaxed`}
+      value={value}
+      placeholder={placeholder}
+      disabled={disabled}
+      aria-invalid={invalid}
+      onChange={(e) => onChange(e.target.value)}
+    />
   );
 }
 
