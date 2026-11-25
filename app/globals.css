@@ -1,26 +1,77 @@
 @import "tailwindcss";
 
+/* El modo oscuro se controla con la clase .dark en <html> (por defecto activado). */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg: #f6f4ef;
+  --surface: #ffffff;
+  --surface-2: #efebe2;
+  --border: #ddd6c8;
+  --text: #1b1a17;
+  --muted: #6b665c;
+  --gold: #b8860b;
+  --gold-strong: #8f6a08;
+  --gold-contrast: #ffffff;
+  --cyan: #0e7c86;
+  --danger: #c0392b;
+  --success: #2e7d32;
+}
+
+.dark {
+  --bg: #0b0b0f;
+  --surface: #15151c;
+  --surface-2: #1d1d26;
+  --border: #2a2a36;
+  --text: #ecebe6;
+  --muted: #9a98a3;
+  --gold: #f5b83d;
+  --gold-strong: #ffcd5c;
+  --gold-contrast: #1a1405;
+  --cyan: #38e1f0;
+  --danger: #ff6b5e;
+  --success: #5ad178;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-gold: var(--gold);
+  --color-gold-strong: var(--gold-strong);
+  --color-gold-contrast: var(--gold-contrast);
+  --color-cyan: var(--cyan);
+  --color-danger: var(--danger);
+  --color-success: var(--success);
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-arcade: "Press Start 2P", ui-monospace, monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  color-scheme: light;
+}
+html.dark {
+  color-scheme: dark;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  -webkit-tap-highlight-color: transparent;
+}
+
+@keyframes blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+.animate-blink {
+  animation: blink 1.1s steps(1) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-blink { animation: none; }
 }
