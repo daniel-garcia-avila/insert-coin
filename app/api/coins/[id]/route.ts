@@ -1,4 +1,5 @@
-import { deleteCoin, getCoin, updateCoin } from "@/lib/coins";
+import { deleteCoin, getCoin } from "@/lib/coins";
+import { updateCoinFromForm } from "@/lib/valuation";
 import { coinIdSchema, coinUpdateSchema } from "@/lib/validation";
 import { handleRouteError, jsonError } from "@/lib/api-response";
 
@@ -37,7 +38,7 @@ export async function PATCH(request: Request, ctx: RouteContext<"/api/coins/[id]
     }
     if (Object.keys(parsed.data).length === 0) return jsonError("No hay cambios que guardar.", 400);
 
-    const coin = await updateCoin(parsedId.data, parsed.data);
+    const coin = await updateCoinFromForm(parsedId.data, parsed.data);
     if (!coin) return jsonError("Moneda no encontrada.", 404);
     return Response.json({ coin });
   } catch (error) {

@@ -116,7 +116,9 @@ export type Identification = z.infer<typeof identificationSchema>;
 // ---------------------------------------------------------------------------
 class ModelUnavailableError extends Error {}
 
-async function callModel(model: string, apiKey: string, images: InlineImage[]): Promise<unknown> {
+type Part = { text: string } | { inline_data: { mime_type: string; data: string } };
+
+async function callModel(model: string, apiKey: string, parts: Part[], schema: object): Promise<unknown> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   let response: Response;
@@ -129,16 +131,13 @@ async function callModel(model: string, apiKey: string, images: InlineImage[]): 
         contents: [
           {
             role: "user",
-            parts: [
-              { text: PROMPT },
-              ...images.map((img) => ({ inline_data: { mime_type: img.mimeType, data: img.base64 } })),
-            ],
+            parts,
           },
         ],
         generationConfig: {
           temperature: 0.2,
           responseMimeType: "application/json",
-          responseSchema: RESPONSE_SCHEMA,
+          responseSchema: schema,
         },
       }),
     });
@@ -189,23 +188,26 @@ async function callModel(model: string, apiKey: string, images: InlineImage[]): 
   }
 }
 
-export async function identifyWithGemini(
-  images: InlineImage[],
-): Promise<{ model: string; identification: Identification; raw: unknown }> {
+/** Llama a Gemini pidiendo JSON con un esquema y lo valida; prueba el modelo de reserva si hace falta. */
+async function generateJson<T>(
+  parts: Part[],
+  schema: object,
+  validator: z.ZodType<T>,
+): Promise<{ model: string; data: T; raw: unknown }> {
   const config = getGeminiConfig();
   if (!config) {
-    throw new AppError("Falta configurar GEMINI_API_KEY para identificar monedas.", 503);
+    throw new AppError("Falta configurar GEMINI_API_KEY para usar la IA.", 503);
   }
 
   for (const model of config.models) {
     try {
-      const raw = await callModel(model, config.apiKey, images);
-      const parsed = identificationSchema.safeParse(raw);
+      const raw = await callModel(model, config.apiKey, parts, schema);
+      const parsed = validator.safeParse(raw);
       if (!parsed.success) {
         console.error("[gemini] Respuesta con formato inválido:", parsed.error.issues.slice(0, 3));
         throw new AppError("La respuesta de la IA no tenía el formato esperado. Inténtalo de nuevo.", 502);
       }
-      return { model, identification: parsed.data, raw };
+      return { model, data: parsed.data, raw };
     } catch (err) {
       if (err instanceof ModelUnavailableError) {
         console.warn("[gemini] Modelo no disponible, probando el siguiente:", err.message);
@@ -218,4 +220,59 @@ export async function identifyWithGemini(
     "Se ha agotado la cuota gratuita de la IA por ahora. Espera un rato (o hasta mañana) y vuelve a intentarlo.",
     429,
   );
+}
+
+export async function identifyWithGemini(
+  images: InlineImage[],
+): Promise<{ model: string; identification: Identification; raw: unknown }> {
+  const parts: Part[] = [
+    { text: PROMPT },
+    ...images.map((img) => ({ inline_data: { mime_type: img.mimeType, data: img.base64 } })),
+  ];
+  const { model, data, raw } = await generateJson(parts, RESPONSE_SCHEMA, identificationSchema);
+  return { model, identification: data, raw };
+}
+
+// ---------------------------------------------------------------------------
+// Estimación de precio por la IA (cuando no hay datos de Numista)
+// ---------------------------------------------------------------------------
+const gradePrice = (g: string) => ({ type: "NUMBER", nullable: true, description: `Precio de mercado en EUR en estado ${g}` });
+
+const VALUE_SCHEMA = {
+  type: "OBJECT",
+  properties: {
+    MC: gradePrice("MC"),
+    RC: gradePrice("RC"),
+    BC: gradePrice("BC"),
+    MBC: gradePrice("MBC"),
+    EBC: gradePrice("EBC"),
+    SC: gradePrice("SC"),
+    FDC: gradePrice("FDC"),
+    notes: { type: "STRING", nullable: true, description: "1-2 frases: de qué depende el precio, rareza, si solo vale su valor facial o su metal…" },
+  },
+  required: ["notes"],
+  propertyOrdering: ["MC", "RC", "BC", "MBC", "EBC", "SC", "FDC", "notes"],
+} as const;
+
+const price = z.number().nullish().catch(null).transform((v) => (typeof v === "number" && v > 0 && Number.isFinite(v) ? v : null));
+const valueEstimateSchema = z.object({
+  MC: price, RC: price, BC: price, MBC: price, EBC: price, SC: price, FDC: price,
+  notes: z.string().nullish().catch(null).transform((v) => v?.trim() || null),
+});
+export type ValueEstimate = z.infer<typeof valueEstimateSchema>;
+
+export async function estimateValueWithGemini(coinDescription: string): Promise<{ model: string; estimate: ValueEstimate }> {
+  const prompt = `Eres un tasador numismático en España. Estima el valor de mercado ACTUAL, en euros, de esta moneda según su estado de conservación (escala española MC, RC, BC, MBC, EBC, SC, FDC).
+
+Moneda:
+${coinDescription}
+
+Reglas:
+- Precio realista al que se vende entre coleccionistas en España/Europa (tiendas, todocoleccion, eBay, subastas), no precios de catálogo inflados.
+- Las monedas comunes de circulación suelen valer muy poco (su valor facial o unos céntimos/euros). Dilo en notes.
+- Si es de plata u oro, el valor mínimo es el de su metal.
+- Deja null los estados en los que no tenga sentido o no puedas estimar.
+- Sé prudente: si dudas, da cifras conservadoras. Responde en castellano.`;
+  const { model, data } = await generateJson([{ text: prompt }], VALUE_SCHEMA, valueEstimateSchema);
+  return { model, estimate: data };
 }

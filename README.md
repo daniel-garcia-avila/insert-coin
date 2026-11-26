@@ -2,9 +2,9 @@
 
 Identifica, tasa y gestiona tu colección de monedas desde el móvil o el PC.
 
-> **Estado actual: Fases 0, 1 y 2 completadas.**
+> **Estado actual: Fases 0 a 3 completadas.**
 > Entras con contraseña, haces las fotos del anverso y el reverso, la IA identifica la moneda y sugiere su estado de conservación,
-> revisas la ficha y la confirmas en tu inventario. La tasación (Fase 3) llega en la siguiente entrega.
+> la app calcula su valor de mercado según el estado, revisas la ficha y la confirmas en tu inventario.
 
 ---
 
@@ -30,7 +30,7 @@ Identifica, tasa y gestiona tu colección de monedas desde el móvil o el PC.
 ## 2. Configurar Supabase (5 minutos)
 
 1. En Supabase, pulsa **New project**. Elige un nombre (p. ej. `insert-coin`), una contraseña de base de datos y la región **West EU** o la más cercana.
-2. Cuando esté listo, abre **SQL Editor → New query**, pega el contenido completo de `supabase/migrations/001_init.sql` y pulsa **Run**. Esto crea:
+2. Cuando esté listo, abre **SQL Editor → New query**, pega el contenido completo de `supabase/migrations/001_init.sql` y pulsa **Run**. Después haz lo mismo con `002_valuation.sql`. Esto crea:
    - la tabla `coins` (inventario) y `numista_cache`,
    - el bucket **privado** `coin-photos` para las fotos,
    - la seguridad (RLS activado: nadie puede leer los datos con la clave pública).
@@ -53,6 +53,7 @@ Edita `.env.local`:
 | `SUPABASE_URL` | La Project URL de Supabase |
 | `SUPABASE_SECRET_KEY` | La Secret key (o service_role) de Supabase |
 | `GEMINI_API_KEY` | Clave gratuita de Google AI Studio (ver abajo). Opcional: sin ella no hay identificación automática |
+| `NUMISTA_API_KEY` | Opcional. Clave gratuita de la API de Numista para usar precios de catálogo. Sin ella, la IA estima el valor |
 | `GEMINI_MODEL` / `GEMINI_FALLBACK_MODEL` | Opcionales. Por defecto `gemini-3.8-flash` y, si se agota su cuota, `gemini-3.5-flash-lite` |
 
 ### Clave de Gemini (gratis)
@@ -126,6 +127,19 @@ Arranca con `npm run dev -- -H 0.0.0.0` y abre `http://IP-DE-TU-PC:3000` en el m
 
 ---
 
+## Cómo funciona la tasación (Fase 3)
+
+Al terminar la identificación, la app calcula el valor automáticamente. También puedes pulsar **Calcular valor** o **Actualizar valor** en cualquier momento.
+
+1. **Precios de catálogo de Numista**, si hay `NUMISTA_API_KEY`. Busca la moneda en el catálogo y elige la emisión de su año: la ceca o, en las pesetas, el año de las estrellas. Después toma sus precios por estado y los traduce a la escala española (G→MC, VG→RC, F→BC, VF→MBC, XF→EBC, AU/UNC→SC, UNC→FDC). Las respuestas se guardan 30–90 días en `numista_cache` para no gastar cuota.
+2. **Estimación de la IA**, si no hay clave de Numista, no encuentra la moneda o no tiene precios. Gemini estima el precio por estado y lo explica con una nota. Se marca como «Estimación IA».
+
+El **rango** que se muestra corresponde al estado de la moneda: va del punto medio con el estado inferior al punto medio con el superior. Si cambias el estado en el formulario, el valor se recalcula al momento, sin nuevas consultas.
+
+Cada moneda incluye enlaces para contrastar precios reales: ficha o búsqueda en Numista, anuncios en todocoleccion, **vendidas** en eBay y subastas en Catawiki. El inventario muestra el **valor estimado total** de la colección, teniendo en cuenta la cantidad de cada moneda.
+
+⚠️ Son valores **orientativos**. Los catálogos y la IA pueden desviarse del precio real, sobre todo en piezas raras o con variantes.
+
 ## Estructura del proyecto
 
 ```
@@ -139,6 +153,7 @@ insert-coin/
 │  ├─ api/coins/route.ts       # GET lista · POST nueva moneda (multipart)
 │  ├─ api/coins/[id]/route.ts  # GET una · PATCH editar/confirmar · DELETE
 │  ├─ api/coins/[id]/identify/route.ts  # POST identificar con IA
+│  ├─ api/coins/[id]/value/route.ts     # POST calcular/actualizar valor
 │  ├─ manifest.ts              # Manifiesto PWA
 │  └─ layout.tsx, globals.css  # Tema, fuentes y cabecera
 ├─ components/                 # AppHeader, Logo, ThemeToggle, PhotoSlot, CoinCard, CoinForm, GradeSelector, AiPanel, States…
@@ -149,6 +164,9 @@ insert-coin/
 │  ├─ coins.ts                 # Lógica de negocio del inventario
 │  ├─ gemini.ts                # Llamada a Gemini con respuesta JSON estructurada y modelo de reserva
 │  ├─ identify.ts              # Identificar una moneda y rellenar su ficha
+│  ├─ numista.ts               # Cliente de la API de Numista con caché
+│  ├─ valuation.ts             # Tasación: Numista → estimación IA
+│  ├─ valuation-math.ts        # Rango de valor por estado y enlaces de venta
 │  ├─ image.ts                 # Compresión de fotos en el navegador
 │  ├─ validation.ts            # Esquemas zod y validación de archivos
 │  └─ types.ts, format.ts, ui.ts, api-client.ts, api-response.ts
@@ -188,6 +206,5 @@ insert-coin/
 
 ## Próximas fases
 
-- **Fase 3: tasación.** Se cruza con Numista y se muestra un rango de precio según el estado, curiosidades y enlaces a todocoleccion, eBay y Numista.
 - **Fase 4: inventario avanzado.** Búsqueda, filtros, orden, agrupación por país, época o año, y valor total de la colección.
 - **Fase 5: cierre.** Despliegue final, README completo y mejoras para la v2.

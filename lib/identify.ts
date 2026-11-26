@@ -59,5 +59,6 @@ export async function identifyCoin(id: string): Promise<Coin | null> {
     status: "borrador",
   };
 
+  // La tasación se pide aparte (POST /api/coins/:id/value) para no acercarse al límite de tiempo.
   return updateCoin(id, changes);
 }

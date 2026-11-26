@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { CoinCard } from "@/components/CoinCard";
 import { EmptyState, ErrorState } from "@/components/States";
 import { apiFetch } from "@/lib/api-client";
+import { formatValueRange } from "@/lib/format";
 import type { Coin } from "@/lib/types";
 import { card } from "@/lib/ui";
 
@@ -34,10 +35,11 @@ export default function InventoryPage() {
           <h1 className="text-2xl font-bold">Mi colección</h1>
           {state.status === "ready" && (
             <p className="text-sm text-muted">
-              {state.coins.length} {state.coins.length === 1 ? "pieza" : "piezas"}
+              {state.coins.length} {state.coins.length === 1 ? "moneda" : "monedas"}
             </p>
           )}
         </div>
+        {state.status === "ready" && <CollectionValue coins={state.coins} />}
       </div>
 
       {state.status === "loading" && <InventorySkeleton />}
@@ -79,6 +81,26 @@ export default function InventoryPage() {
       >
         +
       </Link>
+    </div>
+  );
+}
+
+/** Valor total estimado de la colección (punto medio de cada rango × cantidad). */
+function CollectionValue({ coins }: { coins: Coin[] }) {
+  const valued = coins.filter((c) => c.value_min != null || c.value_max != null);
+  if (valued.length === 0) return null;
+  const sum = (pick: (c: Coin) => number) => valued.reduce((acc, c) => acc + pick(c) * c.quantity, 0);
+  const min = sum((c) => c.value_min ?? c.value_max ?? 0);
+  const max = sum((c) => c.value_max ?? c.value_min ?? 0);
+  return (
+    <div className="text-right">
+      <p className="text-xs text-muted">Valor estimado</p>
+      <p className="text-lg font-bold text-gold">{formatValueRange(min, max)}</p>
+      {valued.length < coins.length && (
+        <p className="text-[11px] text-muted">
+          {valued.length} de {coins.length} tasadas
+        </p>
+      )}
     </div>
   );
 }

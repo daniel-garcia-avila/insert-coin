@@ -7,7 +7,8 @@ import { apiFetch } from "@/lib/api-client";
 import { ERA_LABELS, ERAS, type Coin, type CoinStatus, type Era, type Grade } from "@/lib/types";
 import { btnPrimary, btnSecondary, card, input } from "@/lib/ui";
 import { coinUpdateSchema, type CoinUpdate } from "@/lib/validation";
-import { arcadeText } from "@/lib/format";
+import { arcadeText, formatValueRange } from "@/lib/format";
+import { computeValueRange } from "@/lib/valuation-math";
 
 type TextField =
   | "title" | "country" | "issuer" | "denomination" | "year" | "year_text" | "mint_mark" | "period" | "ruler"
@@ -85,6 +86,8 @@ export function CoinForm({ coin, onSaved, onCancel }: CoinFormProps) {
   const [saving, setSaving] = useState<CoinStatus | null>(null);
 
   const isDraft = coin.status === "borrador";
+  const liveRange = computeValueRange(coin.valuation, values.grade);
+  const liveValue = liveRange ? formatValueRange(liveRange.min, liveRange.max) : null;
 
   function set<K extends keyof FormValues>(key: K, value: FormValues[K]) {
     setValues((prev) => ({ ...prev, [key]: value }));
@@ -194,6 +197,11 @@ export function CoinForm({ coin, onSaved, onCancel }: CoinFormProps) {
       <Section title="Conservación">
         <div className="sm:col-span-2">
           <GradeSelector value={values.grade} suggested={coin.grade_suggested} disabled={disabled} onChange={(g) => set("grade", g)} />
+          {liveValue && (
+            <p className="mt-2 text-sm">
+              Valor estimado en este estado: <span className="font-semibold text-gold">{liveValue}</span>
+            </p>
+          )}
         </div>
         {field("quantity", "Cantidad (piezas iguales)", { inputMode: "numeric" })}
       </Section>

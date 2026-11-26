@@ -5,9 +5,10 @@ import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AiPanel, IdentifyingState } from "@/components/AiPanel";
 import { CoinForm } from "@/components/CoinForm";
+import { ValueCard } from "@/components/ValueCard";
 import { ErrorState, InlineError, Spinner } from "@/components/States";
 import { ApiClientError, apiFetch } from "@/lib/api-client";
-import { arcadeText, formatDate, formatValueRange } from "@/lib/format";
+import { arcadeText, formatDate } from "@/lib/format";
 import { ERA_LABELS, GRADE_LABELS, type Coin } from "@/lib/types";
 import { btnDanger, btnGhost, btnPrimary, btnSecondary, card } from "@/lib/ui";
 
@@ -28,10 +29,25 @@ export default function CoinDetailPage() {
   const [editing, setEditing] = useState(false);
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
   const autoIdentifyDone = useRef(false);
+  const [valuing, setValuing] = useState(false);
+  const [valueError, setValueError] = useState<string | null>(null);
 
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const value = useCallback(async () => {
+    setValuing(true);
+    setValueError(null);
+    try {
+      const { coin } = await apiFetch<{ coin: Coin }>(`/api/coins/${id}/value`, { method: "POST" });
+      setState({ status: "ready", coin });
+    } catch (err) {
+      setValueError(err instanceof Error ? err.message : "No se pudo calcular el valor.");
+    } finally {
+      setValuing(false);
+    }
+  }, [id]);
 
   const identify = useCallback(async () => {
     setIdentifying(true);
@@ -41,12 +57,14 @@ export default function CoinDetailPage() {
       const { coin } = await apiFetch<{ coin: Coin }>(`/api/coins/${id}/identify`, { method: "POST" });
       setState({ status: "ready", coin });
       setEditing(false);
+      setIdentifying(false);
+      // Tras identificar, se tasa automáticamente (petición aparte).
+      if (coin.ai?.is_coin) void value();
     } catch (err) {
       setIdentifyError(err instanceof Error ? err.message : "No se pudo identificar la moneda.");
-    } finally {
       setIdentifying(false);
     }
-  }, [id]);
+  }, [id, value]);
 
   const load = useCallback(async () => {
     try {
@@ -195,6 +213,8 @@ export default function CoinDetailPage() {
         </div>
       )}
 
+      {!identifying && <ValueCard coin={coin} valuing={valuing} error={valueError} onValue={() => void value()} />}
+
       {!identifying && <AiPanel coin={coin} onReidentify={() => void identify()} busy={identifying} />}
 
       {showForm && (
@@ -245,7 +265,6 @@ export default function CoinDetailPage() {
 }
 
 function CoinDetails({ coin }: { coin: Coin }) {
-  const value = formatValueRange(coin.value_min, coin.value_max);
   const rows: [string, string | number | null][] = [
     ["País", coin.country],
     ["Autoridad emisora", coin.issuer],
@@ -267,12 +286,6 @@ function CoinDetails({ coin }: { coin: Coin }) {
   return (
     <div className="space-y-4">
       <dl className={`${card} divide-y divide-border`}>
-        {value && (
-          <div className="flex justify-between gap-4 px-4 py-3">
-            <dt className="text-sm text-muted">Valor estimado</dt>
-            <dd className="font-semibold text-gold">{value}</dd>
-          </div>
-        )}
         {filled.map(([label, v]) => (
           <div key={label} className="flex justify-between gap-4 px-4 py-3">
             <dt className="text-sm text-muted">{label}</dt>

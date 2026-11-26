@@ -64,6 +64,23 @@ export interface CoinRow {
   ai_confidence: number | null;
   sale_links: SaleLink[];
   ai_raw: unknown;
+  valuation: Valuation | null;
+}
+
+export type ValuationSource = "numista" | "ia";
+
+/** Detalle de la tasación guardado en coins.valuation. Los precios son en EUR. */
+export interface Valuation {
+  source: ValuationSource;
+  currency: "EUR";
+  /** Precio estimado por estado de conservación (escala española). */
+  grade_prices: Partial<Record<Grade, number>>;
+  /** Ficha de Numista usada, si la fuente es Numista. */
+  numista: { type_id: number; issue_id: number | null; title: string; url: string; issue_label: string | null } | null;
+  /** Comentario de la IA sobre el precio (rareza, si vale su valor facial…). */
+  notes: string | null;
+  model: string | null;
+  updated_at: string;
 }
 
 /** Resumen de la última identificación por IA que se muestra al usuario. */
